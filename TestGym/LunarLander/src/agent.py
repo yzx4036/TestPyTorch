@@ -36,6 +36,7 @@ class DDQNAgent:
         self.q_target = DeepQNetwork(self.lr, self.n_actions, input_dims=self.input_dims,
                                      fc1_dims=config["fc1_dims"], fc2_dims=config["fc2_dims"],
                                      name=self.env_name+"_"+self.algo+"_q_target")
+        self.total_i = 0
 
     def store_transition(self, state, action, reward, new_state, done):
         # store transition in replay buffer
@@ -138,5 +139,7 @@ class DDQNAgent:
         self.q_target.save_checkpoint()
 
     def load_models(self):
-        self.q_policy.load_checkpoint()
+        isSuccess = self.q_policy.load_checkpoint()
         self.q_target.load_checkpoint()
+        self.total_i = self.q_policy.total_i
+        return isSuccess

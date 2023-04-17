@@ -21,6 +21,7 @@ class DeepQNetwork(nn.Module):
         self.loss = nn.MSELoss()
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
         self.to(self.device)
+        self.total_i = 0
 
     def forward(self, state):
         x = F.relu(self.fc1(state))
@@ -33,4 +34,10 @@ class DeepQNetwork(nn.Module):
         T.save(self.state_dict(), self.checkpoint_file)
 
     def load_checkpoint(self):
-        self.load_state_dict(T.load(self.checkpoint_file))
+        if os.path.exists(self.checkpoint_file):
+            print("Loading checkpoint...")
+            self.load_state_dict(T.load(self.checkpoint_file))
+            return True
+        else:
+            print("No checkpoint found...")
+            return False

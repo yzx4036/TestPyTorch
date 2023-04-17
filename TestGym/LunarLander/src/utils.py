@@ -5,7 +5,7 @@ import yaml
 import os
 
 
-def plot_learning_curve(score_list, avg_score_list, env):
+def plot_learning_curve(score_list, avg_score_list, env, i):
     plt.figure(figsize=(12, 8))
     plt.plot(np.array(score_list), label="Score")
     plt.plot(np.array(avg_score_list), label="Average Score")
@@ -14,7 +14,7 @@ def plot_learning_curve(score_list, avg_score_list, env):
     plt.grid(axis="both")
     plt.legend(loc="lower right")
     plt.title('Learning Curve')
-    plt.savefig('../plots/{}_ddqn_learning_curve.png'.format(env))
+    plt.savefig('../plots/{}_ddqn_learning_curve_{}.png'.format(env, i))
     plt.close()
 
 
