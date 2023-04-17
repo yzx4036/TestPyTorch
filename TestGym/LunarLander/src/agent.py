@@ -31,11 +31,12 @@ class DDQNAgent:
 
         self.q_policy = DeepQNetwork(self.lr, self.n_actions, input_dims=self.input_dims,
                                      fc1_dims=config["fc1_dims"], fc2_dims=config["fc2_dims"],
-                                     name=self.env_name+"_"+self.algo+"_q_policy")
+                                     name=self.env_name + "_" + self.algo + "_q_policy")
 
         self.q_target = DeepQNetwork(self.lr, self.n_actions, input_dims=self.input_dims,
                                      fc1_dims=config["fc1_dims"], fc2_dims=config["fc2_dims"],
-                                     name=self.env_name+"_"+self.algo+"_q_target")
+                                     name=self.env_name + "_" + self.algo + "_q_target")
+        self.total_i = 0
 
     def store_transition(self, state, action, reward, new_state, done):
         # store transition in replay buffer
@@ -70,10 +71,11 @@ class DDQNAgent:
             # set epsilon to epsilon min
             self.eps = self.eps_min
 
+    # 采样经验缓存中的数据
     def sample_memory(self):
-        # get batch of transitions from replay memory
+        # 从经验缓存中获取一个batch size的数据
         states, actions, rewards, new_states, dones = self.memory.sample_buffer(self.batch_size)
-        # convert to pytorch tensors and send to device (necessary for pytorch)
+        # 把数据转换成tensor张量返回
         states = T.tensor(states).to(self.q_policy.device)
         actions = T.tensor(actions, dtype=T.long).to(self.q_policy.device)
         rewards = T.tensor(rewards).to(self.q_policy.device)
@@ -138,5 +140,7 @@ class DDQNAgent:
         self.q_target.save_checkpoint()
 
     def load_models(self):
-        self.q_policy.load_checkpoint()
+        isSuccess = self.q_policy.load_checkpoint()
         self.q_target.load_checkpoint()
+        self.total_i = self.q_policy.total_i
+        return isSuccess
