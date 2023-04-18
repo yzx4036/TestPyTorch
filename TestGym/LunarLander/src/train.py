@@ -18,10 +18,10 @@ def save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, i=
     agent.save_models()
     logger.info("Save models {}".format(config["env_name"]))
 
-    # plot simple learning curve
+    # 使用plot采样曲线
     utils.plot_learning_curve(score_list, avg_score_list, config["env_name"], i)
 
-    # store training data and config to csv file
+    # 保存训练数据到csv
     utils.store_training_data(episode_list, score_list, avg_score_list, epsilon_list, config["env_name"])
     utils.store_training_config(config, config["env_name"])
 
@@ -43,7 +43,7 @@ def train():
                       replace=config["replace_target_network_cntr"], mem_size=config["mem_size"],
                       algo="ddqn", env_name=config["env_name"])
 
-    # lists for storing data
+    # 定义一些列表，用于存储每轮的训练数据
     episode_list = []
     score_list = []
     avg_score_list = []
@@ -68,7 +68,9 @@ def train():
         episode = 0
         total_i = 0
 
-    for episode in range(config["training_episodes"]):
+    # 开始训练， 从配置中获取训练轮数
+    for episode in range(episode, config["training_episodes"]):
+        #每一轮初始化gym环境和分数
         done = False
         score = 0
         observation, info = env.reset()
@@ -77,6 +79,7 @@ def train():
                 env.render()
             action = agent.choose_action(observation)
             observation_, reward, done, truncated, info = env.step(action)
+            print("observation: {}, action: {}, reward: {}, observation_: {}, done: {}".format(observation, action, reward, observation_, done))
             score += reward
             agent.store_transition(observation, action, reward, observation_, done)
             observation = observation_
@@ -88,6 +91,7 @@ def train():
         avg_score = np.mean(score_list[-100:])
         avg_score_list.append(avg_score)
 
+        # 保存最好的分数
         if avg_score > best_score:
             best_score = avg_score
 
