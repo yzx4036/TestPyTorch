@@ -18,7 +18,7 @@ class ReplayBuffer:
 
     # 存储输入到经验缓存
     def store_transition(self, state, action, reward, new_states, done):
-        # 计算内存中第一个可用的索引
+        # 计算经验缓存中第一个可用的索引
         index = self.mem_cntr % self.mem_size
         # 基于索引存储输入的转换
         self.state_memory[index] = state
@@ -26,7 +26,7 @@ class ReplayBuffer:
         self.reward_memory[index] = reward
         self.action_memory[index] = action
         self.terminal_memory[index] = done
-        # 自增内存下标
+        # 自增经验缓存下标
         self.mem_cntr += 1
 
     # 从经验缓存中随机抽取样本

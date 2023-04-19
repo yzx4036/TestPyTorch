@@ -12,16 +12,16 @@ class DeepQNetwork(nn.Module):
         super(DeepQNetwork, self).__init__()
         self.name = name
         self.checkpoint_file = os.path.join("../models/", name)
-        self.fc1_dims = fc1_dims
-        self.fc2_dims = fc2_dims
-        self.fc1 = nn.Linear(*input_dims, self.fc1_dims)
-        self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
-        self.fc3 = nn.Linear(self.fc2_dims, n_actions)
-        self.optimizer = optim.RMSprop(self.parameters(), lr=lr)
-        self.loss = nn.MSELoss()
-        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu')
-        self.to(self.device)
-        self.total_i = 0
+        self.fc1_dims = fc1_dims # number of neurons in first hidden layer 第一个隐藏层的神经元个数
+        self.fc2_dims = fc2_dims # number of neurons in second hidden layer 第二个隐藏层的神经元个数
+        self.fc1 = nn.Linear(*input_dims, self.fc1_dims) # 创建第一个全连接层，输入维度为input_dims，输出维度为fc1_dims
+        self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims) # 创建第二个全连接层，输入维度为fc1_dims，输出维度为fc2_dims
+        self.fc3 = nn.Linear(self.fc2_dims, n_actions) # 创建第三个全连接层，输入维度为fc2_dims，输出维度为n_actions
+        self.optimizer = optim.RMSprop(self.parameters(), lr=lr) # 创建优化器，使用RMSprop优化器
+        self.loss = nn.MSELoss() # 创建损失函数，使用均方误差损失函数
+        self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu') # 创建设备，使用GPU或CPU
+        self.to(self.device) # 将网络模型加载到设备上
+        self.total_i = 0    # 记录训练的总次数
 
     def forward(self, state):
         x = F.relu(self.fc1(state))

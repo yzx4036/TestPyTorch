@@ -74,13 +74,22 @@ def train():
         done = False
         score = 0
         observation, info = env.reset()
+
+        # 每一轮完整执行一次训练，累加当前轮中的分数，计算平均分数
         while not done:
             if config["render"]:
                 env.render()
+
+            # 根据观察到的state选择动作
             action = agent.choose_action(observation)
+
+            # 执行动作，获取下一个新的observation_state，reward，done
             observation_, reward, done, truncated, info = env.step(action)
             print("observation: {}, action: {}, reward: {}, observation_: {}, done: {}".format(observation, action, reward, observation_, done))
             score += reward
+
+            # 将每一步的当前state, action, reward, next_state, done存储到记忆库中
+            # 个人理解：环境接收到动作后，会返回一个新的状态，这个新的状态就是下一个状态，所以这里的observation_就是下一个状态，相当于动作执行后所造成的影响和变化
             agent.store_transition(observation, action, reward, observation_, done)
             observation = observation_
             agent.learn()
