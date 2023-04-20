@@ -34,6 +34,7 @@ class DDQNAgent:
         
         self.memory = ReplayBuffer(mem_size, input_dims)
 
+        # 创建Q网络和目标网络
         self.q_policy = DeepQNetwork(self.lr, self.n_actions, input_dims=self.input_dims,
                                      fc1_dims=config["fc1_dims"], fc2_dims=config["fc2_dims"],
                                      name=self.env_name + "_" + self.algo + "_q_policy")

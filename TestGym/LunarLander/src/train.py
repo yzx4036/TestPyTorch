@@ -19,12 +19,13 @@ def save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, i=
     agent.save_models()
     logger.info("Save models {}".format(config["env_name"]))
 
+    current_time = time.strftime("%Y%m%d%H%M%S")
     # 使用plot采样曲线
-    utils.plot_learning_curve(score_list, avg_score_list, config["env_name"], i)
+    utils.plot_learning_curve(score_list, avg_score_list, config["env_name"], i, current_time)
 
     # 保存训练数据到csv
-    utils.store_training_data(episode_list, score_list, avg_score_list, epsilon_list, config["env_name"])
-    utils.store_training_config(config, config["env_name"])
+    utils.store_training_data(episode_list, score_list, avg_score_list, epsilon_list, config["env_name"], current_time)
+    utils.store_training_config(config, config["env_name"], current_time)
 
 
 def load_model(agent):
