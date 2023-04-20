@@ -11,7 +11,8 @@ config = load_config("../config/config.yaml")
 
 class DDQNAgent:
     def __init__(self, input_dims, n_actions, lr, discount_factor, eps, eps_dec, eps_min, batch_size,
-                 replace, mem_size, algo=None, env_name=None, chkpt_dir=None):
+                 replace, mem_size, algo=None, env_name=None, chkpt_dir=None, disappointing_score=-200, disappointing_keep_going_ratio=0.5):
+        self.is_keep_going = False # 是否坚持挣扎
         self.input_dims = input_dims # input dimensions 输入维度
         self.n_actions = n_actions # number of actions 动作的个数
         self.action_space = [i for i in range(n_actions)] # action space 动作空间
@@ -26,7 +27,11 @@ class DDQNAgent:
         self.env_name = env_name # environment name 环境名
         self.chkpt_dir = chkpt_dir # checkpoint directory 检查点目录
         self.learn_step_cntr = 0 # learning step counter 学习步计数器
-
+        
+        self.disappointing_score = disappointing_score # disappointing score 不满意的分数
+        self.disappointing_keep_ratio = disappointing_keep_going_ratio # disappointing_keep_going_ratio 出现不满意分数时坚持的几率
+        print("失望分数: {} 失望时挣扎坚持的几率：{}".format(self.disappointing_score, self.disappointing_keep_ratio))
+        
         self.memory = ReplayBuffer(mem_size, input_dims)
 
         self.q_policy = DeepQNetwork(self.lr, self.n_actions, input_dims=self.input_dims,
@@ -42,18 +47,31 @@ class DDQNAgent:
         # 保存当前的state, action, reward, next_state, done到记忆库中
         self.memory.store_transition(state, action, reward, new_state, done)
 
-    def choose_action(self, observation):
+    def choose_action_from_nn(self, observation):
+        # convert observation to pytorch tensor 转换成pytorch张量
+        state = T.tensor([observation]).to(self.q_policy.device)
+        # predict q-values for current state with policy network 预测当前状态的q值
+        actions = self.q_policy.forward(state)
+        # choose action with highest q-value 选择q值最大的动作
+        action = T.argmax(actions).item()
+        return action
+
+    def choose_action(self, observation, current_score):
+        _random = np.random.random()
         # 当前的探索率大于随机数时，随机选择一个动作，否则选择最优动作
         if np.random.random() < self.eps:
             # choose random action from action space 从动作空间中随机选择一个动作
             action = np.random.choice(self.action_space)
+        elif current_score < self.disappointing_score:
+            if _random > self.disappointing_keep_ratio:
+                action = 0
+                print("失望放弃！！_random：{} self.disappointing_keep_ratio：{} 分数：{}".format(_random, self.disappointing_keep_ratio, current_score))
+            else:
+                action = self.choose_action_from_nn(observation)
+                self.is_keep_going = True 
+                print("失望坚持！！_random：{} self.disappointing_keep_ratio：{} 分数：{}".format(_random, self.disappointing_keep_ratio, current_score))
         else:
-            # convert observation to pytorch tensor 转换成pytorch张量
-            state = T.tensor([observation]).to(self.q_policy.device)
-            # predict q-values for current state with policy network 预测当前状态的q值
-            actions = self.q_policy.forward(state)
-            # choose action with highest q-value 选择q值最大的动作
-            action = T.argmax(actions).item()
+            action = self.choose_action_from_nn(observation)
 
         return action
 

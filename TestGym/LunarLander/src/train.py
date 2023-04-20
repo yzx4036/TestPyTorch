@@ -1,6 +1,7 @@
 """ Train Agent """
 
 import os
+import time
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # tf info, warning and error messages are not printed
 import gymnasium as gym
@@ -28,8 +29,9 @@ def save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, i=
 
 def load_model(agent):
     isSuccess = agent.load_models()
-    logger.info("Load models {}".format(config["env_name"], agent.total_i))
+    logger.info("Load models {} success：{} i={}".format(config["env_name"], isSuccess, agent.total_i))
     return isSuccess, agent.total_i
+
 
 def train():
     if config["render"]:
@@ -41,7 +43,8 @@ def train():
                       discount_factor=config["discount_factor"], eps=config["eps"], eps_dec=config["eps_dec"],
                       eps_min=config["eps_min"], batch_size=config["batch_size"],
                       replace=config["replace_target_network_cntr"], mem_size=config["mem_size"],
-                      algo="ddqn", env_name=config["env_name"])
+                      algo="ddqn", env_name=config["env_name"], disappointing_score=config["disappointing_score"],
+                      disappointing_keep_going_ratio=config["disappointing_keep_going_ratio"])
 
     # 定义一些列表，用于存储每轮的训练数据
     episode_list = []
@@ -70,7 +73,8 @@ def train():
 
     # 开始训练， 从配置中获取训练轮数
     for episode in range(episode, config["training_episodes"]):
-        #每一轮初始化gym环境和分数
+        _episode_start_timestamp = time.time()
+        # 每一轮初始化gym环境和分数
         done = False
         score = 0
         observation, info = env.reset()
@@ -81,11 +85,11 @@ def train():
                 env.render()
 
             # 根据观察到的state选择动作
-            action = agent.choose_action(observation)
+            action = agent.choose_action(observation, score)
 
             # 执行动作，获取下一个新的observation_state，reward，done
             observation_, reward, done, truncated, info = env.step(action)
-            print("observation: {}, action: {}, reward: {}, observation_: {}, done: {}".format(observation, action, reward, observation_, done))
+            # print("observation: {}, action: {}, reward: {}, observation_: {}, done: {}".format(observation, action, reward, observation_, done))
             score += reward
 
             # 将每一步的当前state, action, reward, next_state, done存储到记忆库中
@@ -105,10 +109,18 @@ def train():
             best_score = avg_score
 
         total_i = episode
-        logger.info('episode: {}, score: {}, avg_score: {}, best_score: {}, epsilon: {}'.format(episode, "%.2f" % score,
-                                                                                                "%.2f" % avg_score,
-                                                                                                "%.2f" % best_score,
-                                                                                                "%.2f" % agent.eps))
+
+        _episode_end_timestamp = time.time()
+        _cost_time = _episode_end_timestamp - _episode_start_timestamp
+
+        textString = "episode: {}, 耗时：{}， score: {}, avg_score: {}, best_score: {}, epsilon: {} ".format(episode,
+                                                                                                           "%.2f" % _cost_time,
+                                                                                                           "%.2f" % score,
+                                                                                                           "%.2f" % avg_score,
+                                                                                                           "%.2f" % best_score,
+                                                                                                           "%.2f" % agent.eps)
+        logger.info(textString)
+
     logger.info("Finish training")
 
     save_model(agent, score_list, avg_score_list, episode_list, epsilon_list)

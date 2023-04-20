@@ -1,3 +1,5 @@
+import time
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -14,7 +16,7 @@ def plot_learning_curve(score_list, avg_score_list, env, i):
     plt.grid(axis="both")
     plt.legend(loc="lower right")
     plt.title('Learning Curve')
-    plt.savefig('../plots/{}_ddqn_learning_curve_{}.png'.format(env, i))
+    plt.savefig('../plots/{}_ddqn_learning_curve_{}_{}.png'.format(env, i, time.strftime("%Y%m%d%H%M%S")))
     plt.close()
 
 
