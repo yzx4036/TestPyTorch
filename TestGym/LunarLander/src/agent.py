@@ -11,27 +11,32 @@ config = load_config("../config/config.yaml")
 
 class DDQNAgent:
     def __init__(self, input_dims, n_actions, lr, discount_factor, eps, eps_dec, eps_min, batch_size,
-                 replace, mem_size, algo=None, env_name=None, chkpt_dir=None, disappointing_score=-200, disappointing_keep_going_ratio=0.5):
-        self.is_keep_going = False # 是否坚持挣扎
-        self.input_dims = input_dims # input dimensions 输入维度
-        self.n_actions = n_actions # number of actions 动作的个数
-        self.action_space = [i for i in range(n_actions)] # action space 动作空间
-        self.lr = lr # learning rate 学习率
-        self.gamma = discount_factor # discount factor 折扣因子，gamma的值越大，对未来奖励的重视程度就越高，因此智能体在做决策时更加关注未来的奖励。通常情况下，gamma的取值范围在0.9到0.99之间，可以根据具体问题进行调整。
-        self.eps = eps # epsilon-greedy 探索率
-        self.eps_dec = eps_dec # epsilon decay rate 探索率衰减率
-        self.eps_min = eps_min # minimum epsilon 最小探索率
-        self.batch_size = batch_size # batch size 批次大小
-        self.replace_target_cnt = replace # replace target network counter 替换目标网络计数器, 相当于多少步更新一次目标网络
-        self.algo = algo # algorithm 算法名
-        self.env_name = env_name # environment name 环境名
-        self.chkpt_dir = chkpt_dir # checkpoint directory 检查点目录
-        self.learn_step_cntr = 0 # learning step counter 学习步计数器
+                 replace, mem_size, algo=None, env_name=None, chkpt_dir=None, disappointing_score=-200,
+                 disappointing_keep_going_ratio=0.5):
+        self.is_keep_going = False  # 是否坚持挣扎
+        self.input_dims = input_dims  # input dimensions 输入维度
+        self.n_actions = n_actions  # number of actions 动作的个数
+        self.action_space = [i for i in range(n_actions)]  # action space 动作空间
+        self.lr = lr  # learning rate 学习率
+        self.gamma = discount_factor  # discount factor 折扣因子，gamma的值越大，对未来奖励的重视程度就越高，因此智能体在做决策时更加关注未来的奖励。通常情况下，gamma的取值范围在0.9到0.99之间，可以根据具体问题进行调整。
+        self.eps = eps  # epsilon-greedy 探索率
+        self.eps_dec = eps_dec  # epsilon decay rate 探索率衰减率
+        self.eps_min = eps_min  # minimum epsilon 最小探索率
+        self.batch_size = batch_size  # batch size 批次大小
+        self.replace_target_cnt = replace  # replace target network counter 替换目标网络计数器, 相当于多少步更新一次目标网络
+        self.algo = algo  # algorithm 算法名
+        self.env_name = env_name  # environment name 环境名
+        self.chkpt_dir = chkpt_dir  # checkpoint directory 检查点目录
+        self.learn_step_cntr = 0  # learning step counter 学习步计数器
+
+        self.disappointing_score = disappointing_score  # disappointing score 不满意的分数
+        self.disappointing_keep_ratio = disappointing_keep_going_ratio  # disappointing_keep_going_ratio 出现不满意分数时坚持的几率
+        self.disappointing_keep_ratio_delta = 0  # disappointing_keep_going_ratio 出现不满意分数时坚持的几率的变化量
         
-        self.disappointing_score = disappointing_score # disappointing score 不满意的分数
-        self.disappointing_keep_ratio = disappointing_keep_going_ratio # disappointing_keep_going_ratio 出现不满意分数时坚持的几率
+        self.last_reward = -100000  # 上一次的奖励
+        
         print("失望分数: {} 失望时挣扎坚持的几率：{}".format(self.disappointing_score, self.disappointing_keep_ratio))
-        
+
         self.memory = ReplayBuffer(mem_size, input_dims)
 
         # 创建Q网络和目标网络
@@ -45,6 +50,7 @@ class DDQNAgent:
         self.total_i = 0
 
     def store_transition(self, state, action, reward, new_state, done):
+        self.last_r eward = reward
         # 保存当前的state, action, reward, next_state, done到记忆库中
         self.memory.store_transition(state, action, reward, new_state, done)
 
@@ -64,13 +70,18 @@ class DDQNAgent:
             # choose random action from action space 从动作空间中随机选择一个动作
             action = np.random.choice(self.action_space)
         elif current_score < self.disappointing_score:
+            
             if _random > self.disappointing_keep_ratio:
                 action = 0
-                print("失望放弃！！_random：{} self.disappointing_keep_ratio：{} 分数：{}".format(_random, self.disappointing_keep_ratio, current_score))
+                print("失望放弃！！_random：{} self.disappointing_keep_ratio：{} 分数：{}".format(_random,
+                                                                                             self.disappointing_keep_ratio,
+                                                                                             current_score))
             else:
                 action = self.choose_action_from_nn(observation)
-                self.is_keep_going = True 
-                print("失望坚持！！_random：{} self.disappointing_keep_ratio：{} 分数：{}".format(_random, self.disappointing_keep_ratio, current_score))
+                self.is_keep_going = True
+                print("失望坚持！！_random：{} self.disappointing_keep_ratio：{} 分数：{}".format(_random,
+                                                                                             self.disappointing_keep_ratio,
+                                                                                             current_score))
         else:
             action = self.choose_action_from_nn(observation)
 

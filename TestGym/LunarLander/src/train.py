@@ -87,6 +87,8 @@ def train():
 
             # 根据观察到的state选择动作
             action = agent.choose_action(observation, score)
+            
+            #todo 预处理动作
 
             # 执行动作，获取下一个新的observation_state，reward，done
             observation_, reward, done, truncated, info = env.step(action)
@@ -119,7 +121,7 @@ def train():
                                                                                                            "%.2f" % score,
                                                                                                            "%.2f" % avg_score,
                                                                                                            "%.2f" % best_score,
-                                                                                                           "%.2f" % agent.eps)
+                                                                                                           "%.3f" % agent.eps)
         logger.info(textString)
 
     logger.info("Finish training")

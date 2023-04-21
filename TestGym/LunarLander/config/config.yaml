@@ -11,6 +11,6 @@ replace_target_network_cntr: 100
 fc1_dims: 256
 fc2_dims: 256
 mem_size: 100000
-disappointing_score : -100
-disappointing_keep_going_ratio : 0.5
+disappointing_score : -200
+disappointing_keep_going_ratio : 0.76
 env_name: "LunarLander-v2"
