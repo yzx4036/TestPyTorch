@@ -45,7 +45,7 @@ def train():
                       eps_min=config["eps_min"], batch_size=config["batch_size"],
                       replace=config["replace_target_network_cntr"], mem_size=config["mem_size"],
                       algo="ddqn", env_name=config["env_name"], disappointing_score=config["disappointing_score"],
-                      disappointing_keep_going_ratio=config["disappointing_keep_going_ratio"])
+                      disappointing_keep_going_ratio=config["disappointing_keep_going_ratio"], disappointing_keep_going_max_count=config["disappointing_keep_going_max_count"],)
 
     # 定义一些列表，用于存储每轮的训练数据
     episode_list = []
@@ -79,7 +79,8 @@ def train():
         done = False
         score = 0
         observation, info = env.reset()
-
+        
+        agent.is_keep_going_count = 0
         # 每一轮完整执行一次训练，累加当前轮中的分数，计算平均分数
         while not done:
             if config["render"]:

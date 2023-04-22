@@ -12,8 +12,10 @@ config = load_config("../config/config.yaml")
 class DDQNAgent:
     def __init__(self, input_dims, n_actions, lr, discount_factor, eps, eps_dec, eps_min, batch_size,
                  replace, mem_size, algo=None, env_name=None, chkpt_dir=None, disappointing_score=-200,
-                 disappointing_keep_going_ratio=0.5):
+                 disappointing_keep_going_ratio=0.5, disappointing_keep_going_max_count=20):
         self.is_keep_going = False  # 是否坚持挣扎
+        self.is_keep_going_count = 0  # 坚持挣扎的次数
+        self.disappointing_keep_going_max_count = 0  # 坚持挣扎的次数        
         self.input_dims = input_dims  # input dimensions 输入维度
         self.n_actions = n_actions  # number of actions 动作的个数
         self.action_space = [i for i in range(n_actions)]  # action space 动作空间
@@ -32,9 +34,9 @@ class DDQNAgent:
         self.disappointing_score = disappointing_score  # disappointing score 不满意的分数
         self.disappointing_keep_ratio = disappointing_keep_going_ratio  # disappointing_keep_going_ratio 出现不满意分数时坚持的几率
         self.disappointing_keep_ratio_delta = 0  # disappointing_keep_going_ratio 出现不满意分数时坚持的几率的变化量
-        
+
         self.last_reward = -100000  # 上一次的奖励
-        
+
         print("失望分数: {} 失望时挣扎坚持的几率：{}".format(self.disappointing_score, self.disappointing_keep_ratio))
 
         self.memory = ReplayBuffer(mem_size, input_dims)
@@ -50,7 +52,7 @@ class DDQNAgent:
         self.total_i = 0
 
     def store_transition(self, state, action, reward, new_state, done):
-        self.last_r eward = reward
+        self.last_reward = reward
         # 保存当前的state, action, reward, next_state, done到记忆库中
         self.memory.store_transition(state, action, reward, new_state, done)
 
@@ -70,18 +72,19 @@ class DDQNAgent:
             # choose random action from action space 从动作空间中随机选择一个动作
             action = np.random.choice(self.action_space)
         elif current_score < self.disappointing_score:
-            
-            if _random > self.disappointing_keep_ratio:
+
+            if _random > self.disappointing_keep_ratio and self.is_keep_going_count > self.disappointing_keep_going_max_count:
                 action = 0
-                print("失望放弃！！_random：{} self.disappointing_keep_ratio：{} 分数：{}".format(_random,
-                                                                                             self.disappointing_keep_ratio,
-                                                                                             current_score))
+                # print("失望放弃！！_random：{} self.disappointing_keep_ratio：{} 分数：{}".format(_random,
+                #                                                                              self.disappointing_keep_ratio,
+                #                                                                              current_score))
             else:
                 action = self.choose_action_from_nn(observation)
                 self.is_keep_going = True
-                print("失望坚持！！_random：{} self.disappointing_keep_ratio：{} 分数：{}".format(_random,
-                                                                                             self.disappointing_keep_ratio,
-                                                                                             current_score))
+                self.is_keep_going_count += 1
+                # print("失望坚持！！_random：{} self.disappointing_keep_ratio：{} 分数：{}".format(_random,
+                #                                                                              self.disappointing_keep_ratio,
+                #                                                                              current_score))
         else:
             action = self.choose_action_from_nn(observation)
 
@@ -106,6 +109,7 @@ class DDQNAgent:
     def sample_memory(self):
         # 从经验缓存中获取一个batch size的数据
         states, actions, rewards, new_states, dones = self.memory.sample_buffer(self.batch_size)
+
         # 把数据转换成tensor张量返回
         states = T.tensor(states).to(self.q_policy.device)
         actions = T.tensor(actions, dtype=T.long).to(self.q_policy.device)
@@ -147,12 +151,14 @@ class DDQNAgent:
 
         # compute q-targets - Shape [batch_size, 1] 计算q-targets
         # best actions of q_next are choosen with the q_eval indices (max_actions) 最佳动作是通过q_eval索引（max_actions）选择的q_next
-        q_target = rewards + self.gamma * q_next[batch_index, max_actions]
+        # q_target = rewards + self.gamma * q_next[batch_index, max_actions]
+        # q_target = self.lr * (rewards + self.gamma * q_next[batch_index, max_actions])
+        q_target = self.lr * (rewards + self.gamma * q_next[batch_index, max_actions]) + (1 - self.lr) * q_pred
 
         # compute loss between q-targets and q-pred - Shape [batch_size, 1] 计算q-targets和q-pred之间的损失
         loss = self.q_policy.loss(q_target, q_pred).to(self.q_policy.device)
 
-        # compute gradients 计算梯度
+        # compute gradients 计算梯度 在深度学习中，我们通常使用反向传播算法计算损失函数对网络参数的导数，以便进行参数更新。这个过程称为反向传播。
         loss.backward()
 
         # perform optimization step (parameter update) 执行优化步骤（参数更新）
