@@ -39,13 +39,16 @@ def train():
         env = gym.make(config["env_name"], render_mode="human")
     else:
         env = gym.make(config["env_name"])
+
+    discount_factor = config["discount_factor"]
     # 输入的维数就是环境观察空间的维数，输出的维数就是动作空间的n值
     agent = DDQNAgent(input_dims=env.observation_space.shape, n_actions=env.action_space.n, lr=config["learning_rate"],
-                      discount_factor=config["discount_factor"], eps=config["eps"], eps_dec=config["eps_dec"],
+                      discount_factor=discount_factor, eps=config["eps"], eps_dec=config["eps_dec"],
                       eps_min=config["eps_min"], batch_size=config["batch_size"],
                       replace=config["replace_target_network_cntr"], mem_size=config["mem_size"],
                       algo="ddqn", env_name=config["env_name"], disappointing_score=config["disappointing_score"],
-                      disappointing_keep_going_ratio=config["disappointing_keep_going_ratio"], disappointing_keep_going_max_count=config["disappointing_keep_going_max_count"],)
+                      disappointing_keep_going_ratio=config["disappointing_keep_going_ratio"],
+                      disappointing_keep_going_max_count=config["disappointing_keep_going_max_count"], )
 
     # 定义一些列表，用于存储每轮的训练数据
     episode_list = []
@@ -79,7 +82,7 @@ def train():
         done = False
         score = 0
         observation, info = env.reset()
-        
+
         agent.is_keep_going_count = 0
         # 每一轮完整执行一次训练，累加当前轮中的分数，计算平均分数
         while not done:
@@ -88,11 +91,17 @@ def train():
 
             # 根据观察到的state选择动作
             action = agent.choose_action(observation, score)
-            
-            #todo 预处理动作
+
+            # todo 预处理动作
 
             # 执行动作，获取下一个新的observation_state，reward，done
             observation_, reward, done, truncated, info = env.step(action)
+            if done:
+                # print("done: {}, src reward: {} result reward={}".format(done, reward, reward + ((discount_factor * np.max(observation_)) ** 2)))
+                reward += ((discount_factor * np.max(observation_)) ** 2)
+            else:
+                reward = reward
+
             # print("observation: {}, action: {}, reward: {}, observation_: {}, done: {}".format(observation, action, reward, observation_, done))
             score += reward
 
@@ -100,7 +109,7 @@ def train():
             # 个人理解：环境接收到动作后，会返回一个新的状态，这个新的状态就是下一个状态，所以这里的observation_就是下一个状态，相当于动作执行后所造成的影响和变化
             agent.store_transition(observation, action, reward, observation_, done)
             observation = observation_
-            agent.learn()
+            loss = agent.learn()
 
         episode_list.append(episode)
         score_list.append(score)
