@@ -97,6 +97,7 @@ def train():
             # 执行动作，获取下一个新的observation_state，reward，done
             observation_, reward, done, truncated, info = env.step(action)
             if done:
+                # print("done: {}, src reward: {} result reward={}".format(done, reward, reward + ((discount_factor * np.max(observation_)) ** 2)))
                 reward += ((discount_factor * np.max(observation_)) ** 2)
             else:
                 reward = reward
@@ -108,7 +109,7 @@ def train():
             # 个人理解：环境接收到动作后，会返回一个新的状态，这个新的状态就是下一个状态，所以这里的observation_就是下一个状态，相当于动作执行后所造成的影响和变化
             agent.store_transition(observation, action, reward, observation_, done)
             observation = observation_
-            agent.learn()
+            loss = agent.learn()
 
         episode_list.append(episode)
         score_list.append(score)

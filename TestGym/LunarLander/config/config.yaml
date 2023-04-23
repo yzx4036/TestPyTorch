@@ -1,17 +1,18 @@
-training_episodes: 10000
+training_episodes: 200
 test_episodes: 300
 render: False
-learning_rate: 0.002
-discount_factor: 0.85 # gamma
+learning_rate: 0.00075
+discount_factor: 0.99 # gamma
 eps: 1.0
-eps_dec: 0.000005
-eps_min: 0.01
-batch_size: 1024
-replace_target_network_cntr: 150
-fc1_dims: 1024
-fc2_dims: 1024
-mem_size: 204800000
+eps_dec: 0.0001
+eps_min: 0.001
+batch_size: 64
+replace_target_network_cntr: 50
+fc1_dims: 256
+fc2_dims: 256
+mem_size: 100000
 disappointing_score : 20
-disappointing_keep_going_ratio : 0.8
-disappointing_keep_going_max_count : 60
+disappointing_keep_going_ratio : 0.6
+disappointing_keep_going_max_count : 100
+#env_name: "CartPole-v1"
 env_name: "LunarLander-v2"
