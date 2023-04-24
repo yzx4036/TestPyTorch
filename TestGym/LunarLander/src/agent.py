@@ -152,12 +152,12 @@ class DDQNAgent:
 
         # compute q-targets - Shape [batch_size, 1] 计算q-targets
         # best actions of q_next are choosen with the q_eval indices (max_actions) 最佳动作是通过q_eval索引（max_actions）选择的q_next
-        # q_target = rewards + self.gamma * q_next[batch_index, max_actions]
+        q_target = rewards + self.gamma * q_next[batch_index, max_actions]
         # q_target = self.lr * (rewards + self.gamma * q_next[batch_index, max_actions])
         # q_target = self.lr * (rewards +  self.gamma * q_next[batch_index, max_actions]) + (1 - self.lr) * q_pred
         # dones_t = dones[batch_index]
         # print("rewards {}".format(rewards))
-        q_target = self.lr * (rewards + torch.where(dones, 2, self.gamma) * q_next[batch_index, max_actions]) +  torch.where(dones, (1 - self.lr) * q_pred, 0)
+        # q_target = self.lr * (rewards + torch.where(dones, 2, self.gamma) * q_next[batch_index, max_actions]) +  torch.where(dones, (1 - self.lr) * q_pred, 0)
 
         # compute loss between q-targets and q-pred - Shape [batch_size, 1] 计算q-targets和q-pred之间的损失
         loss = self.q_policy.loss(q_target, q_pred).to(self.q_policy.device)

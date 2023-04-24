@@ -96,11 +96,11 @@ def train():
 
             # 执行动作，获取下一个新的observation_state，reward，done
             observation_, reward, done, truncated, info = env.step(action)
-            if done:
-                # print("done: {}, src reward: {} result reward={}".format(done, reward, reward + ((discount_factor * np.max(observation_)) ** 2)))
-                reward += ((discount_factor * np.max(observation_)) ** 2)
-            else:
-                reward = reward
+            # if done:
+            #     # print("done: {}, src reward: {} result reward={}".format(done, reward, reward + ((discount_factor * np.max(observation_)) ** 2)))
+            #     reward += ((discount_factor * np.max(observation_)) ** 2)
+            # else:
+            #     reward = reward
 
             # print("observation: {}, action: {}, reward: {}, observation_: {}, done: {}".format(observation, action, reward, observation_, done))
             score += reward
@@ -151,5 +151,6 @@ def train():
 
 if __name__ == "__main__":
     logging.config.dictConfig(logging_config)
+    print("logging_config: {}".format(logging_config))
     logger = logging.getLogger("train")
     train()

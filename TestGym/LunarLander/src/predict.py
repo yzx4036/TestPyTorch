@@ -14,7 +14,7 @@ config = utils.load_config("../config/config.yaml")
 logging_config = utils.load_logging_config("../config/logging.yaml")
 
 
-def test():
+def predict():
     if config["render"]:
         env = gym.make(config["env_name"], render_mode="human")
     else:
@@ -42,7 +42,7 @@ def test():
         while not done:
             if config["render"]:
                 env.render()
-            action = agent.choose_action(observation)
+            action = agent.choose_action(observation, score)
             observation_, reward, done, truncated, info = env.step(action)
             score += reward
             observation = observation_
@@ -59,5 +59,6 @@ def test():
 
 if __name__ == "__main__":
     logging.config.dictConfig(logging_config)
+    print("logging_config: {}".format(logging_config))
     logger = logging.getLogger("test")
-    test()
+    predict()
