@@ -96,15 +96,17 @@ def train():
 
             # 执行动作，获取下一个新的observation_state，reward，done
             observation_, reward, done, truncated, info = env.step(action)
-            # if done:
-            #     # print("done: {}, src reward: {} result reward={}".format(done, reward, reward + ((discount_factor * np.max(observation_)) ** 2)))
-            #     reward += ((discount_factor * np.max(observation_)) ** 2)
-            # else:
-            #     reward = reward
 
             # print("observation: {}, action: {}, reward: {}, observation_: {}, done: {}".format(observation, action, reward, observation_, done))
-            score += reward
+            
+            if (done and score > -100):
+                print("done and reward src_reward{} new_reward{}".format(reward, reward + 100 + (discount_factor * np.max(observation_))))
+                reward = reward + 100 * (discount_factor * np.max(observation_))
+            else:
+                reward = reward
 
+            score += reward
+            
             # 将每一步的当前state, action, reward, next_state, done存储到记忆库中
             # 个人理解：环境接收到动作后，会返回一个新的状态，这个新的状态就是下一个状态，所以这里的observation_就是下一个状态，相当于动作执行后所造成的影响和变化
             agent.store_transition(observation, action, reward, observation_, done)

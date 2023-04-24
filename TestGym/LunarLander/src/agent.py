@@ -75,7 +75,7 @@ class DDQNAgent:
         elif current_score < self.disappointing_score:
 
             if _random > self.disappointing_keep_ratio and self.is_keep_going_count > self.disappointing_keep_going_max_count:
-                action = 0
+                action = np.random.choice(self.action_space)
                 # print("失望放弃！！_random：{} self.disappointing_keep_ratio：{} 分数：{}".format(_random,
                 #                                                                              self.disappointing_keep_ratio,
                 #                                                                              current_score))
