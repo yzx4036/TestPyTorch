@@ -15,13 +15,13 @@ config = utils.load_config("../config/config.yaml")
 logging_config = utils.load_logging_config("../config/logging.yaml")
 
 
-def save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, i=""):
+def save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, loss_list, i=""):
     agent.save_models()
     logger.info("Save models {}".format(config["env_name"]))
 
     current_time = time.strftime("%Y%m%d%H%M%S")
     # 使用plot采样曲线
-    utils.plot_learning_curve(score_list, avg_score_list, config["env_name"], i, current_time)
+    utils.plot_learning_curve(score_list, avg_score_list, loss_list, config["env_name"], i, current_time)
 
     # 保存训练数据到csv
     utils.store_training_data(episode_list, score_list, avg_score_list, epsilon_list, config["env_name"], current_time)
@@ -56,6 +56,9 @@ def train():
     avg_score_list = []
     epsilon_list = []
     best_score = -np.inf
+    best_loss = np.inf
+    loss_list = []
+    avg_loss_list = []
 
     isSuccess, total_i = load_model(agent)
 
@@ -64,12 +67,13 @@ def train():
     # 注册信号处理函数
     def signal_handler(signal, frame):
         print('You pressed Ctrl+C!')
-        save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, total_i)
+        save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, avg_loss_list, total_i)
         exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
 
     if isSuccess:
+        print("load model success, total_i={}".format(total_i)) 
         episode = total_i
     else:
         episode = 0
@@ -81,9 +85,10 @@ def train():
         # 每一轮初始化gym环境和分数
         done = False
         score = 0
+        total_loss = 0
         observation, info = env.reset()
 
-        agent.is_keep_going_count = 0
+        agent.mark_start(True)
         # 每一轮完整执行一次训练，累加当前轮中的分数，计算平均分数
         while not done:
             if config["render"]:
@@ -99,12 +104,13 @@ def train():
 
             # print("observation: {}, action: {}, reward: {}, observation_: {}, done: {}".format(observation, action, reward, observation_, done))
 
-            if (done and score > -100):
+            if (done and score > -50):
                 if reward < 0:
                     print("done and reward src_reward{} new_reward{} 勉强".format(reward, reward + 50))
-                    reward = reward + 50
+                    reward = reward + 10
                 else:
-                    print("done and reward src_reward{} new_reward{} 基本完美".format(reward, reward + 50))
+                    print("done and reward src_reward{} new_reward{} 基本完美".format(reward, reward + 100 * (
+                            discount_factor * np.max(observation_))))
                     reward = reward + 100 * (discount_factor * np.max(observation_))
             score += reward
 
@@ -113,33 +119,45 @@ def train():
             agent.store_transition(observation, action, reward, observation_, done)
             observation = observation_
             loss = agent.learn()
+            if loss is not None:
+                total_loss = np.sum(loss.item())
 
         episode_list.append(episode)
         score_list.append(score)
+        avg_score = np.mean(score_list[-100:])  # 计算最近100轮的平均分数
         epsilon_list.append(agent.eps)
-        avg_score = np.mean(score_list[-100:])
         avg_score_list.append(avg_score)
-
+        loss_list.append(total_loss)
+        avg_loss = np.mean(loss_list[-100:])  # 计算最近100轮的平均loss
+        avg_loss_list.append(avg_loss)
+        
         # 保存最好的分数
         if avg_score > best_score:
             best_score = avg_score
+
+        # 保存最好的loss
+        if avg_loss < best_loss:
+            best_loss = avg_loss
 
         total_i = episode
 
         _episode_end_timestamp = time.time()
         _cost_time = _episode_end_timestamp - _episode_start_timestamp
 
-        textString = "episode: {}, 耗时：{}， score: {}, avg_score: {}, best_score: {}, epsilon: {} ".format(episode,
-                                                                                                           "%.2f" % _cost_time,
-                                                                                                           "%.2f" % score,
-                                                                                                           "%.2f" % avg_score,
-                                                                                                           "%.2f" % best_score,
-                                                                                                           "%.3f" % agent.eps)
+        textString = "episode: {}, 耗时：{}， score: {}, avg_score: {}, best_score: {}, avg_loss: {}, best_loss: {}, epsilon: {} ".format(
+            episode,
+            "%.2f" % _cost_time,
+            "%.2f" % score,
+            "%.2f" % avg_score,
+            "%.2f" % best_score,
+            "%.2f" % avg_loss,
+            "%.2f" % best_loss,
+            "%.3f" % agent.eps)
         logger.info(textString)
 
     logger.info("Finish training")
 
-    save_model(agent, score_list, avg_score_list, episode_list, epsilon_list)
+    save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, avg_loss_list)
     # # save policy and target network
     # agent.save_models()
     # logger.info("Save models {}".format(config["env_name"], i))

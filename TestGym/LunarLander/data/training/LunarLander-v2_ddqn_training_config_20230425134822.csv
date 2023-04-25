@@ -1,0 +1,2 @@
+,training_episodes,test_episodes,render,learning_rate,discount_factor,eps,eps_dec,eps_min,batch_size,replace_target_network_cntr,fc1_dims,fc2_dims,mem_size,disappointing_time,disappointing_score,disappointing_keep_going_ratio,disappointing_keep_going_max_count,test_predict_model_suffix_name,env_name
+0,500,300,False,1e-05,0.99,1.0,2e-05,0.1,64,120,256,256,512,30,30,0.6,50,test1,LunarLander-v2

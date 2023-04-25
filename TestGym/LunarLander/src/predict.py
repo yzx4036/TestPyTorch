@@ -27,7 +27,7 @@ def predict():
                       mem_size=config["mem_size"], algo="ddqn", env_name=config["env_name"])
 
     # load pretrained models
-    agent.load_models()
+    agent.load_models(config["test_predict_model_suffix_name"])
     # set epsilon to zero as we want to choose the predicted best action (highest q-value) and not a random action
     agent.eps = 0.0
 

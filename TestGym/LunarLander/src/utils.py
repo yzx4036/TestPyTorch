@@ -7,10 +7,11 @@ import yaml
 import os
 
 
-def plot_learning_curve(score_list, avg_score_list, env, i, time):
+def plot_learning_curve(score_list, avg_score_list, loss_list, env, i, time):
     plt.figure(figsize=(12, 8))
     plt.plot(np.array(score_list), label="Score")
     plt.plot(np.array(avg_score_list), label="Average Score")
+    plt.plot(np.array(loss_list), label="loss_list")
     plt.ylabel("Score")
     plt.xlabel("Episodes")
     plt.grid(axis="both")
