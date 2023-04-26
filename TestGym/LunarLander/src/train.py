@@ -15,23 +15,39 @@ config = utils.load_config("../config/config.yaml")
 logging_config = utils.load_logging_config("../config/logging.yaml")
 
 
-def save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, loss_list, i=""):
+def save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, loss_list, avg_loss_list, i):
     agent.save_models()
     logger.info("Save models {}".format(config["env_name"]))
 
     current_time = time.strftime("%Y%m%d%H%M%S")
+    print("episode_list len={}".format(episode_list))
     # 使用plot采样曲线
-    utils.plot_learning_curve(score_list, avg_score_list, loss_list, config["env_name"], i, current_time)
+    utils.plot_learning_curve(score_list, avg_score_list, loss_list, avg_loss_list, config["env_name"], i, current_time)
 
     # 保存训练数据到csv
-    utils.store_training_data(episode_list, score_list, avg_score_list, epsilon_list, config["env_name"], current_time)
-    utils.store_training_config(config, config["env_name"], current_time)
+    utils.store_training_data(episode_list, score_list, avg_score_list, epsilon_list, loss_list, avg_loss_list,
+                              config["env_name"])
+    utils.store_training_config(config, config["env_name"])
 
 
-def load_model(agent):
+def load_model(agent, episode_list, score_list, avg_score_list, epsilon_list, loss_list, avg_loss_list):
     isSuccess = agent.load_models()
-    logger.info("Load models {} success：{} i={}".format(config["env_name"], isSuccess, agent.total_i))
-    return isSuccess, agent.total_i
+    training_data = utils.load_training_data(config["env_name"])
+    if training_data is None:
+        logger.info("Load training data {} failed".format(config["env_name"]))
+    else:
+        episode_list += training_data["episode"].tolist()
+        score_list += training_data["score"].tolist()
+        avg_score_list += training_data["avg_score"].tolist()
+        epsilon_list += training_data["epsilon"].tolist()
+        loss_list += training_data["loss"].tolist()
+        avg_loss_list += training_data["avg_loss"].tolist()
+        agent.eps = epsilon_list[len(episode_list) - 1] + np.random.random() * 0.1
+        agent.eps = min(agent.eps, 1)
+        agent.eps = max(agent.eps, agent.eps_min)
+    
+    logger.info("Load models {} success：{} i={}".format(config["env_name"], isSuccess, len(episode_list)))
+    return isSuccess, len(episode_list)
 
 
 def train():
@@ -55,32 +71,38 @@ def train():
     score_list = []
     avg_score_list = []
     epsilon_list = []
-    best_score = -np.inf
-    best_loss = np.inf
     loss_list = []
     avg_loss_list = []
 
-    isSuccess, total_i = load_model(agent)
+    best_score = -np.inf
+    best_loss = np.inf
 
-    logger.info("Start training")
+    isSuccess, total_i = load_model(agent, episode_list, score_list, avg_score_list, epsilon_list, loss_list,
+                                    avg_loss_list)
+    if len(avg_score_list) > 0:
+        best_score = max(avg_score_list)
+    if len(avg_loss_list) > 0:
+        best_loss = min(avg_loss_list)
+        
+    logger.info("Start training best_score={}, best_loss={}".format(best_score, best_loss))
 
     # 注册信号处理函数
     def signal_handler(signal, frame):
         print('You pressed Ctrl+C!')
-        save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, avg_loss_list, total_i)
+        save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, loss_list, avg_loss_list, total_i)
         exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
 
     if isSuccess:
-        print("load model success, total_i={}".format(total_i)) 
+        print("load model success, total_i={}".format(total_i))
         episode = total_i
     else:
         episode = 0
         total_i = 0
 
     # 开始训练， 从配置中获取训练轮数
-    for episode in range(episode, config["training_episodes"]):
+    for episode in range(episode, episode + config["training_episodes"]):
         _episode_start_timestamp = time.time()
         # 每一轮初始化gym环境和分数
         done = False
@@ -118,7 +140,8 @@ def train():
             # 个人理解：环境接收到动作后，会返回一个新的状态，这个新的状态就是下一个状态，所以这里的observation_就是下一个状态，相当于动作执行后所造成的影响和变化
             agent.store_transition(observation, action, reward, observation_, done)
             observation = observation_
-            loss = agent.learn()
+            loss, is_replace = agent.learn()
+            
             if loss is not None:
                 total_loss = np.sum(loss.item())
 
@@ -130,7 +153,7 @@ def train():
         loss_list.append(total_loss)
         avg_loss = np.mean(loss_list[-100:])  # 计算最近100轮的平均loss
         avg_loss_list.append(avg_loss)
-        
+
         # 保存最好的分数
         if avg_score > best_score:
             best_score = avg_score
@@ -157,7 +180,7 @@ def train():
 
     logger.info("Finish training")
 
-    save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, avg_loss_list)
+    save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, loss_list, avg_loss_list, total_i)
     # # save policy and target network
     # agent.save_models()
     # logger.info("Save models {}".format(config["env_name"], i))
@@ -172,6 +195,5 @@ def train():
 
 if __name__ == "__main__":
     logging.config.dictConfig(logging_config)
-    print("logging_config: {}".format(logging_config))
     logger = logging.getLogger("train")
     train()

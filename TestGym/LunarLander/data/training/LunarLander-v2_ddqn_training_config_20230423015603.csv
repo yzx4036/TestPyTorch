@@ -1,2 +1,0 @@
-,training_episodes,test_episodes,render,learning_rate,discount_factor,eps,eps_dec,eps_min,batch_size,replace_target_network_cntr,fc1_dims,fc2_dims,mem_size,disappointing_score,disappointing_keep_going_ratio,disappointing_keep_going_max_count,env_name
-0,200,300,False,0.002,0.8,1.0,2e-05,0.05,128,100,512,256,100000,20,0.8,60,LunarLander-v2

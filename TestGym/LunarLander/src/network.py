@@ -21,7 +21,6 @@ class DeepQNetwork(nn.Module):
         self.loss = nn.MSELoss() # 创建损失函数，使用均方误差损失函数
         self.device = T.device('cuda:0' if T.cuda.is_available() else 'cpu') # 创建设备，使用GPU或CPU
         self.to(self.device) # 将网络模型加载到设备上
-        self.total_i = 0    # 记录训练的总次数
 
     def forward(self, state):
         x = F.relu(self.fc1(state))

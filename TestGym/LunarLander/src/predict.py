@@ -60,7 +60,7 @@ def predict():
         avg_score_list.append(avg_score)
 
         logger.info('episode: {}, score: {}, avg_score: {}, epsilon: {}'.format(i, "%.2f" % score, "%.2f" % avg_score,
-                                                                                "%.2f" % agent.eps))
+                                                                                "%.3f" % agent.eps))
 
     logger.info("Finish testing")
 

@@ -7,11 +7,11 @@ import yaml
 import os
 
 
-def plot_learning_curve(score_list, avg_score_list, loss_list, env, i, time):
+def plot_learning_curve(score_list, avg_score_list, loss_list, avg_loss_list, env, i, time):
     plt.figure(figsize=(12, 8))
     plt.plot(np.array(score_list), label="Score")
     plt.plot(np.array(avg_score_list), label="Average Score")
-    plt.plot(np.array(loss_list), label="loss_list")
+    plt.plot(np.array(avg_loss_list), label="avg_loss_list")
     plt.ylabel("Score")
     plt.xlabel("Episodes")
     plt.grid(axis="both")
@@ -21,15 +21,25 @@ def plot_learning_curve(score_list, avg_score_list, loss_list, env, i, time):
     plt.close()
 
 
-def store_training_data(episodes, scores, avg_scores, epsilons, env, time):
-    training_data_dict = {"episode": episodes, "score": scores, "avg_score": avg_scores, "epsilon": epsilons}
+def load_training_data(env):
+    df = None
+    file_path = "../data/training/{}_ddqn_training_data.csv".format(env)
+    if os.path.exists(file_path):
+        df = pd.read_csv(file_path)
+    return df
+
+
+def store_training_data(episodes, scores, avg_scores, epsilons, loss_list, avg_loss_list, env):
+    training_data_dict = {"episode": episodes, "score": scores, "avg_score": avg_scores, "epsilon": epsilons,
+                          "loss": loss_list,
+                          "avg_loss": avg_loss_list}
     df = pd.DataFrame(training_data_dict)
-    df.to_csv("../data/training/{}_ddqn_training_data_{}.csv".format(env, time))
+    df.to_csv("../data/training/{}_ddqn_training_data.csv".format(env))
 
 
-def store_training_config(config, env, time):
+def store_training_config(config, env):
     df = pd.DataFrame(config, index=[0])
-    df.to_csv("../data/training/{}_ddqn_training_config_{}.csv".format(env, time))
+    df.to_csv("../data/training/{}_ddqn_training_config.csv".format(env))
 
 
 def load_config(config_name):

@@ -53,7 +53,6 @@ class DDQNAgent:
         self.q_target = DeepQNetwork(self.lr, self.n_actions, input_dims=self.input_dims,
                                      fc1_dims=config["fc1_dims"], fc2_dims=config["fc2_dims"],
                                      name=self.env_name + "_" + self.algo + "_q_target")
-        self.total_i = 0
 
     def store_transition(self, state, action, reward, new_state, done):
         self.last_reward = reward
@@ -80,7 +79,7 @@ class DDQNAgent:
         elif current_score < self.disappointing_score:
             _random = np.random.random()
             if (_random > self.disappointing_keep_ratio):
-                if self.is_keep_going_count > self.disappointing_keep_going_max_count * 0.5 :
+                if self.is_keep_going_count > self.disappointing_keep_going_max_count * 0.5:
                     action = np.random.choice(self.action_space)
                 else:
                     return 0
@@ -104,6 +103,8 @@ class DDQNAgent:
         if self.learn_step_cntr % self.replace_target_cnt == 0:
             # load weights of policy network and feed them into target network 把策略网络的权重加载到目标网络中
             self.q_target.load_state_dict(self.q_policy.state_dict())
+            return True
+        return False
 
     def decrement_epsilon(self):
         # check if current epsilon is still greater than epsilon min 检查当前的探索率是否大于最小探索率
@@ -131,14 +132,14 @@ class DDQNAgent:
     def learn(self):
         # do not learn until memory size if greater or equal to batch size 保证记忆库中的数据大于batch size，小于batch size时不进行学习
         if self.memory.mem_cntr < self.batch_size:
-            return
+            return None, None
 
         # set gradients to zero to do the parameter update correctly 设置梯度为0，以便正确地进行参数更新
         # PyTorch accumulates the gradients on subsequent backward passes PyTorch在后续的反向传播中累积梯度
         self.q_policy.optimizer.zero_grad()
 
         # replace target network 执行一次是否替换目标网络
-        self.replace_target_network()
+        is_replace = self.replace_target_network()
 
         # create batch indices 创建批次索引
         batch_index = np.arange(self.batch_size)
@@ -182,7 +183,7 @@ class DDQNAgent:
         # increase learn step counter 增加学习步计数器
         self.learn_step_cntr += 1
 
-        return loss
+        return loss, is_replace
 
     def mark_start(self, is_start):
         self.is_start = is_start
@@ -197,5 +198,4 @@ class DDQNAgent:
     def load_models(self, model_suffix=None):
         isSuccess = self.q_policy.load_checkpoint(model_suffix)
         self.q_target.load_checkpoint(model_suffix)
-        self.total_i = self.q_policy.total_i
         return isSuccess
