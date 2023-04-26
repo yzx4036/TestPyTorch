@@ -20,7 +20,7 @@ def save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, lo
     logger.info("Save models {}".format(config["env_name"]))
 
     current_time = time.strftime("%Y%m%d%H%M%S")
-    print("episode_list len={}".format(episode_list))
+    # print("episode_list len={}".format(episode_list))
     # 使用plot采样曲线
     utils.plot_learning_curve(score_list, avg_score_list, loss_list, avg_loss_list, config["env_name"], i, current_time)
 
@@ -45,7 +45,7 @@ def load_model(agent, episode_list, score_list, avg_score_list, epsilon_list, lo
         agent.eps = epsilon_list[len(episode_list) - 1] + np.random.random() * 0.1
         agent.eps = min(agent.eps, 1)
         agent.eps = max(agent.eps, agent.eps_min)
-    
+
     logger.info("Load models {} success：{} i={}".format(config["env_name"], isSuccess, len(episode_list)))
     return isSuccess, len(episode_list)
 
@@ -64,7 +64,7 @@ def train():
                       replace=config["replace_target_network_cntr"], mem_size=config["mem_size"],
                       algo="ddqn", env_name=config["env_name"], disappointing_score=config["disappointing_score"],
                       disappointing_keep_going_ratio=config["disappointing_keep_going_ratio"],
-                      disappointing_keep_going_max_count=config["disappointing_keep_going_max_count"], )
+                      disappointing_keep_going_max_count=config["disappointing_keep_going_max_count"], disappointing_time=config["disappointing_time"])
 
     # 定义一些列表，用于存储每轮的训练数据
     episode_list = []
@@ -82,8 +82,9 @@ def train():
     if len(avg_score_list) > 0:
         best_score = max(avg_score_list)
     if len(avg_loss_list) > 0:
-        best_loss = min(avg_loss_list)
-        
+        a_list = [i for i in avg_loss_list if i != 0]
+        best_loss = min(a_list)
+
     logger.info("Start training best_score={}, best_loss={}".format(best_score, best_loss))
 
     # 注册信号处理函数
@@ -115,24 +116,28 @@ def train():
         while not done:
             if config["render"]:
                 env.render()
-
             # 根据观察到的state选择动作
             action = agent.choose_action(observation, score)
 
             # todo 预处理动作
 
+            time_out_done, time_out_reward = agent.check_time()
             # 执行动作，获取下一个新的observation_state，reward，done
             observation_, reward, done, truncated, info = env.step(action)
+            if time_out_reward != 0:
+                print("time_out_reward: {}".format(time_out_reward))
+                reward += time_out_reward
+            done = done or time_out_done
 
             # print("observation: {}, action: {}, reward: {}, observation_: {}, done: {}".format(observation, action, reward, observation_, done))
 
             if (done and score > -50):
                 if reward < 0:
-                    print("done and reward src_reward{} new_reward{} 勉强".format(reward, reward + 50))
+                    # print("done and reward src_reward{} new_reward{} 勉强".format(reward, reward + 10))
                     reward = reward + 10
                 else:
-                    print("done and reward src_reward{} new_reward{} 基本完美".format(reward, reward + 100 * (
-                            discount_factor * np.max(observation_))))
+                    # print("done and reward src_reward{} new_reward{}".format(reward, reward + 100 * (
+                    #         discount_factor * np.max(observation_))))
                     reward = reward + 100 * (discount_factor * np.max(observation_))
             score += reward
 
@@ -141,7 +146,7 @@ def train():
             agent.store_transition(observation, action, reward, observation_, done)
             observation = observation_
             loss, is_replace = agent.learn()
-            
+
             if loss is not None:
                 total_loss = np.sum(loss.item())
 

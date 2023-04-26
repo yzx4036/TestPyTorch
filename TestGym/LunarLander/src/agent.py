@@ -13,12 +13,13 @@ config = load_config("../config/config.yaml")
 
 class DDQNAgent:
     def __init__(self, input_dims, n_actions, lr, discount_factor, eps, eps_dec, eps_min, batch_size,
-                 replace, mem_size, algo=None, env_name=None, chkpt_dir=None, disappointing_score=-200,
-                 disappointing_keep_going_ratio=0.5, disappointing_keep_going_max_count=20):
+                 replace, mem_size, algo=None, env_name=None, chkpt_dir=None, disappointing_score=-20,
+                 disappointing_keep_going_ratio=0.5, disappointing_keep_going_max_count=20, disappointing_time=3):
         self.start_time = 0
         self.is_start = False
         self.is_keep_going = False  # 是否坚持挣扎
         self.is_keep_going_count = 0  # 坚持挣扎的次数
+        self.disappointing_time = disappointing_time  # 失望的时间
         self.disappointing_keep_going_max_count = disappointing_keep_going_max_count
         self.input_dims = input_dims  # input dimensions 输入维度
         self.n_actions = n_actions  # number of actions 动作的个数
@@ -70,6 +71,8 @@ class DDQNAgent:
 
     def choose_action(self, observation, current_score):
         if self.is_keep_going_count > self.disappointing_keep_going_max_count:
+            return 0
+        if self.is_keep_going:
             return 0
         _random = np.random.random()
         # 当前的探索率大于随机数时，随机选择一个动作，否则选择最优动作
@@ -191,6 +194,13 @@ class DDQNAgent:
         self.is_keep_going_count = 0
         self.is_keep_going = False
 
+    def check_time(self):
+        time_now = time.time()
+        if time_now - self.start_time > self.disappointing_time:
+            self.is_keep_going = False
+            return True, -50
+        return False, 0
+
     def save_models(self):
         self.q_policy.save_checkpoint()
         self.q_target.save_checkpoint()
@@ -198,4 +208,9 @@ class DDQNAgent:
     def load_models(self, model_suffix=None):
         isSuccess = self.q_policy.load_checkpoint(model_suffix)
         self.q_target.load_checkpoint(model_suffix)
+        # 
+        # # 打印模型参数
+        # for name, param in self.q_policy.named_parameters():
+        #     print(name, param)
+        # 
         return isSuccess

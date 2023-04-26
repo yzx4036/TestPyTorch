@@ -45,12 +45,13 @@ def predict():
                 env.render()
             action = agent.choose_action(observation, score)
             observation_, reward, done, truncated, info = env.step(action)
-            if (done and score > -100):
+            if (done and score > -50):
                 if reward < 0:
-                    print("done and reward src_reward{} new_reward{} 勉强".format(reward, reward + 50))
-                    reward = reward + 50
+                    # print("done and reward src_reward{} new_reward{} 勉强".format(reward, reward + 10))
+                    reward = reward + 10
                 else:
-                    print("done and reward src_reward{} new_reward{} 基本完美".format(reward, reward + 50))
+                    # print("done and reward src_reward{} new_reward{}".format(reward, reward + 100 * (
+                    #         discount_factor * np.max(observation_))))
                     reward = reward + 100 * (discount_factor * np.max(observation_))
             score += reward
             observation = observation_
@@ -67,6 +68,6 @@ def predict():
 
 if __name__ == "__main__":
     logging.config.dictConfig(logging_config)
-    print("logging_config: {}".format(logging_config))
+    # print("logging_config: {}".format(logging_config))
     logger = logging.getLogger("test")
     predict()
