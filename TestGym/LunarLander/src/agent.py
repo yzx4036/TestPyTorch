@@ -17,7 +17,7 @@ class DDQNAgent:
                  disappointing_keep_going_ratio=0.5, disappointing_keep_going_max_count=20, disappointing_time=3):
         self.start_time = 0
         self.is_start = False
-        self.is_keep_going = False  # 是否坚持挣扎
+        self.is_keep_going = True  # 是否坚持挣扎
         self.is_keep_going_count = 0  # 坚持挣扎的次数
         self.disappointing_time = disappointing_time  # 失望的时间
         self.disappointing_keep_going_max_count = disappointing_keep_going_max_count
@@ -70,10 +70,11 @@ class DDQNAgent:
         return action
 
     def choose_action(self, observation, current_score):
+        if not self.is_keep_going:
+            action = np.random.choice(self.action_space)
         if self.is_keep_going_count > self.disappointing_keep_going_max_count:
-            return 0
-        if self.is_keep_going:
-            return 0
+            action = np.random.choice(self.action_space)
+
         _random = np.random.random()
         # 当前的探索率大于随机数时，随机选择一个动作，否则选择最优动作
         if np.random.random() < self.eps:
@@ -192,11 +193,11 @@ class DDQNAgent:
         self.is_start = is_start
         self.start_time = time.time()
         self.is_keep_going_count = 0
-        self.is_keep_going = False
+        self.is_keep_going = True
 
     def check_time(self):
         time_now = time.time()
-        if time_now - self.start_time > self.disappointing_time:
+        if 0 < self.disappointing_time < time_now - self.start_time:
             self.is_keep_going = False
             return True, -50
         return False, 0

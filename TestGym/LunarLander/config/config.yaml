@@ -3,20 +3,20 @@ test_episodes: 300
 render: false
 learning_rate: 0.00001
 discount_factor: 0.9 # gamma
-eps: 1.0
-eps_dec: 0.0001
+eps: 1
+eps_dec: 0.00002
 eps_min: 0.1
 batch_size: 100
-replace_target_network_cntr: 200
-fc1_dims: 512
-fc2_dims: 512
-mem_size: 1024
+replace_target_network_cntr: 100
+fc1_dims: 64  
+fc2_dims: 64
+mem_size: 256
 
 
-disappointing_time : 30 # 超时时间
+disappointing_time : 1 # 超时时间
 disappointing_score : 20
-disappointing_keep_going_ratio : 0.4
-disappointing_keep_going_max_count : 20
+disappointing_keep_going_ratio : 0.8
+disappointing_keep_going_max_count : 30
 
 test_predict_model_suffix_name:
 #env_name: "CartPole-v1"

@@ -164,7 +164,7 @@ def train():
             best_score = avg_score
 
         # 保存最好的loss
-        if avg_loss < best_loss:
+        if 0 < avg_loss < best_loss:
             best_loss = avg_loss
 
         total_i = episode
