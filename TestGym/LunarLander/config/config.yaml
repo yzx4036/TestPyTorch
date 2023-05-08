@@ -6,17 +6,17 @@ discount_factor: 0.9 # gamma
 eps: 1
 eps_dec: 0.00002
 eps_min: 0.1
-batch_size: 100
-replace_target_network_cntr: 100
+batch_size: 32
+replace_target_network_cntr: 50
 fc1_dims: 64  
 fc2_dims: 64
 mem_size: 256
 
 
-disappointing_time : 1 # 超时时间
-disappointing_score : 20
+disappointing_time : 1.5 # 超时时间
+disappointing_score : -50
 disappointing_keep_going_ratio : 0.8
-disappointing_keep_going_max_count : 30
+disappointing_keep_going_max_count : 100
 
 test_predict_model_suffix_name:
 #env_name: "CartPole-v1"

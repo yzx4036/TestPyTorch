@@ -64,7 +64,8 @@ def train():
                       replace=config["replace_target_network_cntr"], mem_size=config["mem_size"],
                       algo="ddqn", env_name=config["env_name"], disappointing_score=config["disappointing_score"],
                       disappointing_keep_going_ratio=config["disappointing_keep_going_ratio"],
-                      disappointing_keep_going_max_count=config["disappointing_keep_going_max_count"], disappointing_time=config["disappointing_time"])
+                      disappointing_keep_going_max_count=config["disappointing_keep_going_max_count"],
+                      disappointing_time=config["disappointing_time"])
 
     # 定义一些列表，用于存储每轮的训练数据
     episode_list = []
@@ -121,9 +122,10 @@ def train():
 
             # todo 预处理动作
 
-            time_out_done, time_out_reward = agent.check_time()
             # 执行动作，获取下一个新的observation_state，reward，done
             observation_, reward, done, truncated, info = env.step(action)
+
+            time_out_done, time_out_reward = agent.check_time(score)
             if time_out_reward != 0:
                 print("time_out_reward: {}".format(time_out_reward))
                 reward += time_out_reward
@@ -131,14 +133,28 @@ def train():
 
             # print("observation: {}, action: {}, reward: {}, observation_: {}, done: {}".format(observation, action, reward, observation_, done))
 
-            if (done and score > -50):
+            if done:
+                print("done: {}, is_keep_going_count: {}  info:{}".format(done, agent.is_keep_going_count, info))
+
+            if done:
+                print(">>>>>>>>>>>>>>>>>>>>>>>>>done score={} reward={}".format(score, reward))
+                _new_reward = reward
                 if reward < 0:
-                    # print("done and reward src_reward{} new_reward{} 勉强".format(reward, reward + 10))
-                    reward = reward + 10
+                    if score < -50:
+                        _new_reward = reward * 2
+                        print("失败 done and reward score={} src_rewar=d{} new_reward={}".format(score, reward, _new_reward))
                 else:
-                    # print("done and reward src_reward{} new_reward{}".format(reward, reward + 100 * (
-                    #         discount_factor * np.max(observation_))))
-                    reward = reward + 100 * (discount_factor * np.max(observation_))
+                    if score > 0:
+                        _new_reward = reward * (discount_factor * np.max(observation_))
+                        print("完美 done and reward score={} src_reward={} new_reward={} np.max(observation_){}".format(score, reward, _new_reward, np.max(observation_)))
+                    elif score > -20:
+                        _new_reward = reward * 0.8
+                        print("勉强 done and reward score={} src_rewar=d{} new_reward={}".format(score, reward, _new_reward))
+                    else:
+                        _new_reward = reward * 0.2
+                        print("不满意 done and reward score={} src_reward={} new_reward={}".format(score, reward, _new_reward))
+                reward = _new_reward
+
             score += reward
 
             # 将每一步的当前state, action, reward, next_state, done存储到记忆库中
@@ -172,7 +188,7 @@ def train():
         _episode_end_timestamp = time.time()
         _cost_time = _episode_end_timestamp - _episode_start_timestamp
 
-        textString = "episode: {}, 耗时：{}， score: {}, avg_score: {}, best_score: {}, avg_loss: {}, best_loss: {}, epsilon: {} ".format(
+        textString = "episode: {}, 耗时：{}， score: {}, avg_score: {}, best_score: {}, avg_loss: {}, best_loss: {}, epsilon: {} KeepCount={} ".format(
             episode,
             "%.2f" % _cost_time,
             "%.2f" % score,
@@ -180,7 +196,7 @@ def train():
             "%.2f" % best_score,
             "%.2f" % avg_loss,
             "%.2f" % best_loss,
-            "%.3f" % agent.eps)
+            "%.3f" % agent.eps, agent.is_keep_going_count)
         logger.info(textString)
 
     logger.info("Finish training")
