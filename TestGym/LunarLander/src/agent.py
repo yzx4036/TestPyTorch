@@ -1,4 +1,5 @@
 """ Create DQNAgent Class """
+import math
 import os
 import time
 import numpy as np
@@ -15,6 +16,7 @@ class DDQNAgent:
     def __init__(self, input_dims, n_actions, lr, discount_factor, eps, eps_dec, eps_min, batch_size,
                  replace, mem_size, algo=None, env_name=None, chkpt_dir=None, disappointing_score=-20,
                  disappointing_keep_going_ratio=0.5, disappointing_keep_going_max_count=20, disappointing_time=3):
+        self.last_score = -np.inf
         self.start_time = 0
         self.is_start = False
         self.is_keep_going = True  # 是否坚持挣扎
@@ -48,11 +50,13 @@ class DDQNAgent:
 
         # 创建Q网络和目标网络
         self.q_policy = DeepQNetwork(self.lr, self.n_actions, input_dims=self.input_dims,
-                                     fc1_dims=config["fc1_dims"], fc2_dims=config["fc2_dims"],
+                                     fc1_dims=config["fc1_dims"], fc2_dims1=config["fc2_dims1"],
+                                     fc2_dims2=config["fc2_dims2"],
                                      name=self.env_name + "_" + self.algo + "_q_policy")
 
         self.q_target = DeepQNetwork(self.lr, self.n_actions, input_dims=self.input_dims,
-                                     fc1_dims=config["fc1_dims"], fc2_dims=config["fc2_dims"],
+                                     fc1_dims=config["fc1_dims"], fc2_dims1=config["fc2_dims1"],
+                                     fc2_dims2=config["fc2_dims2"],
                                      name=self.env_name + "_" + self.algo + "_q_target")
 
     def store_transition(self, state, action, reward, new_state, done):
@@ -70,11 +74,20 @@ class DDQNAgent:
         return action
 
     def choose_action(self, observation, current_score):
-        if not self.is_keep_going:
-            action = np.random.choice(self.action_space)
-            return action
-        if self.is_keep_going_count > self.disappointing_keep_going_max_count:
-            return 0
+        # if not self.is_keep_going:
+        #     if self.last_score < current_score:
+        #         action = self.choose_action_from_nn(observation)
+        #     else:
+        #         action = np.random.choice(self.action_space)
+        #     self.last_score = current_score
+        #     return action
+        # if self.is_keep_going_count > self.disappointing_keep_going_max_count:
+        #     if self.last_score < current_score:
+        #         action = self.choose_action_from_nn(observation)
+        #     else:
+        #         action = np.random.choice(self.action_space)
+        #     self.last_score = current_score
+        #     return action
 
         _random = np.random.random()
         # 当前的探索率大于随机数时，随机选择一个动作，否则选择最优动作
@@ -102,6 +115,7 @@ class DDQNAgent:
         else:
             action = self.choose_action_from_nn(observation)
 
+        self.last_score = current_score
         return action
 
     def replace_target_network(self):
@@ -197,14 +211,23 @@ class DDQNAgent:
         self.is_keep_going_count = 0
         self.is_keep_going = True
 
-    def check_time(self, score):
+    def get_last_score(self):
+        return self.last_score
+
+    def check_time(self, reward):
         time_now = time.time()
-        if 0 < self.disappointing_time < time_now - self.start_time:
-            self.is_keep_going = False
-            if score < self.disappointing_score:
-                return True, -100
-            return True, 100
-        return False, 0
+        self.is_keep_going = False
+        _timeout_cost = time_now - self.start_time
+        _timeout_count = _timeout_cost - self.disappointing_time
+        if reward < 0:
+            if 0 < self.disappointing_time < time_now - self.start_time:
+                return True, -10 * _timeout_count
+            return True, 0
+        else:
+            if 0 < self.disappointing_time < time_now - self.start_time:
+                math.floor(_timeout_count)
+                return True, -8 * _timeout_count
+            return False, 0
 
     def save_models(self):
         self.q_policy.save_checkpoint()

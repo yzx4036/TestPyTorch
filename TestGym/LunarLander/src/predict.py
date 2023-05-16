@@ -20,11 +20,15 @@ def predict():
     else:
         env = gym.make(config["env_name"])
     discount_factor = config["discount_factor"]
+    # 输入的维数就是环境观察空间的维数，输出的维数就是动作空间的n值
     agent = DDQNAgent(input_dims=env.observation_space.shape, n_actions=env.action_space.n, lr=config["learning_rate"],
-                      discount_factor=discount_factor, eps=config["eps"],
-                      eps_dec=config["eps_dec"], eps_min=config["eps_min"],
-                      batch_size=config["batch_size"], replace=config["replace_target_network_cntr"],
-                      mem_size=config["mem_size"], algo="ddqn", env_name=config["env_name"])
+                      discount_factor=discount_factor, eps=config["eps"], eps_dec=config["eps_dec"],
+                      eps_min=config["eps_min"], batch_size=config["batch_size"],
+                      replace=config["replace_target_network_cntr"], mem_size=config["mem_size"],
+                      algo="ddqn", env_name=config["env_name"], disappointing_score=config["disappointing_score"],
+                      disappointing_keep_going_ratio=config["disappointing_keep_going_ratio"],
+                      disappointing_keep_going_max_count=config["disappointing_keep_going_max_count"],
+                      disappointing_time=config["disappointing_time"])
 
     # load pretrained models
     agent.load_models(config["test_predict_model_suffix_name"])
@@ -36,6 +40,9 @@ def predict():
     avg_score_list = []
 
     logger.info("Start testing")
+
+    logger.info("Start testing")
+    agent.mark_start(True)
     for i in range(config["test_episodes"]):
         done = False
         score = 0
@@ -45,14 +52,16 @@ def predict():
                 env.render()
             action = agent.choose_action(observation, score)
             observation_, reward, done, truncated, info = env.step(action)
-            if (done and score > -50):
-                if reward < 0:
-                    # print("done and reward src_reward{} new_reward{} 勉强".format(reward, reward + 10))
-                    reward = reward + 10
-                else:
-                    # print("done and reward src_reward{} new_reward{}".format(reward, reward + 100 * (
-                    #         discount_factor * np.max(observation_))))
-                    reward = reward + 100 * (discount_factor * np.max(observation_))
+
+            done, reward = utils.extra_reward(done, agent, score, reward, observation_, discount_factor)
+            # if (done and score > -50):
+            #     if reward < 0:
+            #         # print("done and reward src_reward{} new_reward{} 勉强".format(reward, reward + 10))
+            #         reward = reward + 10
+            #     else:
+            #         # print("done and reward src_reward{} new_reward{}".format(reward, reward + 100 * (
+            #         #         discount_factor * np.max(observation_))))
+            #         reward = reward + 100 * (discount_factor * np.max(observation_))
             score += reward
             observation = observation_
 

@@ -125,35 +125,9 @@ def train():
             # 执行动作，获取下一个新的observation_state，reward，done
             observation_, reward, done, truncated, info = env.step(action)
 
-            time_out_done, time_out_reward = agent.check_time(score)
-            if time_out_reward != 0:
-                print("time_out_reward: {}".format(time_out_reward))
-                reward += time_out_reward
-            done = done or time_out_done
-
             # print("observation: {}, action: {}, reward: {}, observation_: {}, done: {}".format(observation, action, reward, observation_, done))
 
-            if done:
-                print("done: {}, is_keep_going_count: {}  info:{}".format(done, agent.is_keep_going_count, info))
-
-            if done:
-                print(">>>>>>>>>>>>>>>>>>>>>>>>>done score={} reward={}".format(score, reward))
-                _new_reward = reward
-                if reward < 0:
-                    if score < -50:
-                        _new_reward = reward * 2
-                        print("失败 done and reward score={} src_rewar=d{} new_reward={}".format(score, reward, _new_reward))
-                else:
-                    if score > 0:
-                        _new_reward = reward * (discount_factor * np.max(observation_))
-                        print("完美 done and reward score={} src_reward={} new_reward={} np.max(observation_){}".format(score, reward, _new_reward, np.max(observation_)))
-                    elif score > -20:
-                        _new_reward = reward * 0.8
-                        print("勉强 done and reward score={} src_rewar=d{} new_reward={}".format(score, reward, _new_reward))
-                    else:
-                        _new_reward = reward * 0.2
-                        print("不满意 done and reward score={} src_reward={} new_reward={}".format(score, reward, _new_reward))
-                reward = _new_reward
+            done, reward = utils.extra_reward(done, agent, score, reward , observation_, discount_factor)
 
             score += reward
 
@@ -215,6 +189,6 @@ def train():
 
 
 if __name__ == "__main__":
-    logging.config.dictConfig(logging_config)
+    logging.config.dictConfig(logging_config) 
     logger = logging.getLogger("train")
     train()

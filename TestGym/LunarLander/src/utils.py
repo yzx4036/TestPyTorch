@@ -53,3 +53,54 @@ def load_logging_config(filename):
         logging_config = yaml.safe_load(f.read())
         f.close()
     return logging_config
+
+
+def extra_reward(done, agent, score, reward, observation_, discount_factor):
+    _src_new_score = score + reward
+    _new_reward = reward
+
+    # print("extra_reward done={} score={} reward={}".format(done, score, reward))
+    if done:
+        time_out_done, time_out_reward = agent.check_time(reward)
+        if time_out_reward != 0:
+            print("time_out_reward: {}".format(time_out_reward))
+            _new_reward += time_out_reward
+        # done = done or time_out_done
+
+        print("done: {}, is_keep_going_count: {} reward={} time_out_reward={}".format(done, agent.is_keep_going_count,
+                                                                                      reward, time_out_reward))
+
+        print(">>>>>>>>>>>>>>>>>>>>>>>>>done score={} reward={}".format(score, reward))
+        if reward < 0:
+            if _src_new_score > 0:
+                _new_reward = reward * 2
+            elif _src_new_score > -100:
+                _new_reward = reward * 2
+            else:
+                _new_reward = reward * 2.5
+            print("失败 done and reward _src_new_score={} src_rewar=d{} new_reward={}".format(_src_new_score, reward, _new_reward))
+
+        else:
+            if _src_new_score > 20:
+                _new_reward *= (discount_factor * np.max(observation_))
+                _new_reward *= 2
+                print(
+                    "完美 done and reward _src_new_score={} src_reward={} new_reward={} np.max(observation_){}".format(
+                        _src_new_score,
+                        reward,
+                        _new_reward,
+                        np.max(
+                            observation_)))
+            elif _src_new_score > -50:
+                _new_reward = _new_reward
+                print("勉强 done and reward _src_new_score={} src_rewar={} new_reward={}".format(_src_new_score, reward, _new_reward))
+            else:
+                _new_reward *= 0.8
+                print("不满意 done and reward _src_new_score={} src_reward={} new_reward={}".format(_src_new_score, reward, _new_reward))
+    else:
+        if score < _src_new_score:
+            _new_reward += 1
+        else:
+            _new_reward -= 0.5
+
+    return done, _new_reward
