@@ -22,7 +22,7 @@ def predict():
     discount_factor = config["discount_factor"]
     # 输入的维数就是环境观察空间的维数，输出的维数就是动作空间的n值
     agent = DDQNAgent(input_dims=env.observation_space.shape, n_actions=env.action_space.n, lr=config["learning_rate"],
-                      discount_factor=discount_factor, eps=config["eps"], eps_dec=config["eps_dec"],
+                      discount_factor=discount_factor, eps=0, eps_dec=config["eps_dec"],
                       eps_min=config["eps_min"], batch_size=config["batch_size"],
                       replace=config["replace_target_network_cntr"], mem_size=config["mem_size"],
                       algo="ddqn", env_name=config["env_name"], disappointing_score=config["disappointing_score"],
@@ -76,6 +76,7 @@ def predict():
 
 
 if __name__ == "__main__":
+    np.random.seed(1)
     logging.config.dictConfig(logging_config)
     # print("logging_config: {}".format(logging_config))
     logger = logging.getLogger("test")

@@ -74,6 +74,7 @@ def train():
     epsilon_list = []
     loss_list = []
     avg_loss_list = []
+    
 
     best_score = -np.inf
     best_loss = np.inf
@@ -111,10 +112,12 @@ def train():
         score = 0
         total_loss = 0
         observation, info = env.reset()
-
+        frame_step = 0
+        
         agent.mark_start(True)
         # 每一轮完整执行一次训练，累加当前轮中的分数，计算平均分数
         while not done:
+            frame_step += 1
             if config["render"]:
                 env.render()
             # 根据观察到的state选择动作
@@ -139,6 +142,8 @@ def train():
 
             if loss is not None:
                 total_loss = np.sum(loss.item())
+            if frame_step > config["max_frame_step"]:
+                done = True
 
         episode_list.append(episode)
         score_list.append(score)
@@ -189,6 +194,7 @@ def train():
 
 
 if __name__ == "__main__":
+    np.random.seed(1)
     logging.config.dictConfig(logging_config) 
     logger = logging.getLogger("train")
     train()

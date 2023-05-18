@@ -14,7 +14,7 @@ class ReplayBuffer:
                                          dtype=np.float32)
         self.action_memory = np.zeros(self.mem_size, dtype=np.int32)
         self.reward_memory = np.zeros(self.mem_size, dtype=np.float32)
-        self.terminal_memory = np.zeros(self.mem_size, dtype=np.bool)
+        self.terminal_memory = np.zeros(self.mem_size, dtype=bool)
 
     # 存储输入到经验缓存
     def store_transition(self, state, action, reward, new_states, done):

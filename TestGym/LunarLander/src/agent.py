@@ -14,7 +14,7 @@ config = load_config("../config/config.yaml")
 
 class DDQNAgent:
     def __init__(self, input_dims, n_actions, lr, discount_factor, eps, eps_dec, eps_min, batch_size,
-                 replace, mem_size, algo=None, env_name=None, chkpt_dir=None, disappointing_score=-20,
+                 replace, mem_size, algo=None, env_name=None, chkpt_dir=None, learn_interval=2, disappointing_score=-20,
                  disappointing_keep_going_ratio=0.5, disappointing_keep_going_max_count=20, disappointing_time=3):
         self.last_score = -np.inf
         self.start_time = 0
@@ -37,6 +37,7 @@ class DDQNAgent:
         self.env_name = env_name  # environment name 环境名
         self.chkpt_dir = chkpt_dir  # checkpoint directory 检查点目录
         self.learn_step_cntr = 0  # learning step counter 学习步计数器
+        self.learn_interval = learn_interval  # 学习间隔
 
         self.disappointing_score = disappointing_score  # disappointing score 不满意的分数
         self.disappointing_keep_ratio = disappointing_keep_going_ratio  # disappointing_keep_going_ratio 出现不满意分数时坚持的几率
@@ -51,12 +52,10 @@ class DDQNAgent:
         # 创建Q网络和目标网络
         self.q_policy = DeepQNetwork(self.lr, self.n_actions, input_dims=self.input_dims,
                                      fc1_dims=config["fc1_dims"], fc2_dims1=config["fc2_dims1"],
-                                     fc2_dims2=config["fc2_dims2"],
                                      name=self.env_name + "_" + self.algo + "_q_policy")
 
         self.q_target = DeepQNetwork(self.lr, self.n_actions, input_dims=self.input_dims,
                                      fc1_dims=config["fc1_dims"], fc2_dims1=config["fc2_dims1"],
-                                     fc2_dims2=config["fc2_dims2"],
                                      name=self.env_name + "_" + self.algo + "_q_target")
 
     def store_transition(self, state, action, reward, new_state, done):
@@ -66,7 +65,8 @@ class DDQNAgent:
 
     def choose_action_from_nn(self, observation):
         # convert observation to pytorch tensor 转换成pytorch张量
-        state = T.tensor([observation]).to(self.q_policy.device)
+        data_array = np.array([observation])
+        state = T.tensor(data_array).to(self.q_policy.device)
         # predict q-values for current state with policy network 预测当前状态的q值
         actions = self.q_policy.forward(state)
         # choose action with highest q-value 选择q值最大的动作
@@ -74,20 +74,10 @@ class DDQNAgent:
         return action
 
     def choose_action(self, observation, current_score):
-        # if not self.is_keep_going:
-        #     if self.last_score < current_score:
-        #         action = self.choose_action_from_nn(observation)
-        #     else:
-        #         action = np.random.choice(self.action_space)
-        #     self.last_score = current_score
-        #     return action
-        # if self.is_keep_going_count > self.disappointing_keep_going_max_count:
-        #     if self.last_score < current_score:
-        #         action = self.choose_action_from_nn(observation)
-        #     else:
-        #         action = np.random.choice(self.action_space)
-        #     self.last_score = current_score
-        #     return action
+        if self.eps == 0:
+            return self.choose_action_from_nn(observation)
+        if self.is_keep_going_count > self.disappointing_keep_going_max_count:
+            return 0
 
         _random = np.random.random()
         # 当前的探索率大于随机数时，随机选择一个动作，否则选择最优动作
@@ -97,6 +87,7 @@ class DDQNAgent:
         elif current_score < self.disappointing_score:
             _random = np.random.random()
             if (_random > self.disappointing_keep_ratio):
+                # action = 0
                 action = np.random.choice(self.action_space)
                 # if self.is_keep_going_count > self.disappointing_keep_going_max_count * 0.6:
                 #     action = np.random.choice(self.action_space)
@@ -122,7 +113,10 @@ class DDQNAgent:
         # check if learn step counter is equal to replace target network counter 检查学习步计数器是否等于替换目标网络计数器
         if self.learn_step_cntr % self.replace_target_cnt == 0:
             # load weights of policy network and feed them into target network 把策略网络的权重加载到目标网络中
-            self.q_target.load_state_dict(self.q_policy.state_dict())
+            # self.q_target.load_state_dict(self.q_policy.state_dict())
+            # todo 使用加权软更新(soft update)，即引入一个学习率lr，将旧的目标网络参数和新的评估网络参数直接做加权平均后的值赋值给目标网络
+            for q_target_params, q_eval_params in zip(self.q_target.parameters(), self.q_policy.parameters()):
+                q_target_params.data.copy_(self.lr * q_eval_params + (1 - self.lr) * q_target_params.data)
             return True
         return False
 
@@ -150,16 +144,17 @@ class DDQNAgent:
         return states, actions, rewards, new_states, dones
 
     def learn(self):
+        # increase learn step counter 增加学习步计数器
+        self.learn_step_cntr += 1
+        
         # do not learn until memory size if greater or equal to batch size 保证记忆库中的数据大于batch size，小于batch size时不进行学习
         if self.memory.mem_cntr < self.batch_size:
             return None, None
-
+        if self.learn_step_cntr % self.learn_interval != 0:
+            return None, None
         # set gradients to zero to do the parameter update correctly 设置梯度为0，以便正确地进行参数更新
         # PyTorch accumulates the gradients on subsequent backward passes PyTorch在后续的反向传播中累积梯度
         self.q_policy.optimizer.zero_grad()
-
-        # replace target network 执行一次是否替换目标网络
-        is_replace = self.replace_target_network()
 
         # create batch indices 创建批次索引
         batch_index = np.arange(self.batch_size)
@@ -197,11 +192,13 @@ class DDQNAgent:
         # perform optimization step (parameter update) 执行优化步骤（参数更新）
         self.q_policy.optimizer.step()
 
+        # replace target network 执行一次是否替换目标网络
+        is_replace = self.replace_target_network()
+
         # decrement epsilon by epsilon decay rate 通过探索率衰减率来衰减探索率
         self.decrement_epsilon()
 
-        # increase learn step counter 增加学习步计数器
-        self.learn_step_cntr += 1
+
 
         return loss, is_replace
 
