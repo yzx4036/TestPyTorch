@@ -43,3 +43,22 @@ class ReplayBuffer:
         terminal = self.terminal_memory[batch]
 
         return states, actions, rewards, new_states, terminal
+
+    # 从经验缓存中顺序抽取样本
+    def sample_buffer_sequential(self, batch_size):
+        # 获取当前经验缓存下标可用的最大值
+        max_mem = min(self.mem_cntr, self.mem_size)
+        _first_index = np.random.randint(0, max(1, max_mem - batch_size),1)
+        _batch = None
+        for i in range(batch_size):
+            if i == 0:
+                _batch = np.array([_first_index])
+            else:
+                _batch = np.append(_batch, [_first_index + i])
+        states = self.state_memory[_batch]
+        new_states = self.new_state_memory[_batch]
+        rewards = self.reward_memory[_batch]
+        actions = self.action_memory[_batch]
+        terminal = self.terminal_memory[_batch]
+
+        return states, actions, rewards, new_states, terminal

@@ -13,7 +13,7 @@ import signal
 
 config = utils.load_config("../config/config.yaml")
 logging_config = utils.load_logging_config("../config/logging.yaml")
-
+np.random.seed(config["seed"])
 
 def save_model(agent, score_list, avg_score_list, episode_list, epsilon_list, loss_list, avg_loss_list, i):
     agent.save_models()
@@ -130,8 +130,8 @@ def train():
 
             # print("observation: {}, action: {}, reward: {}, observation_: {}, done: {}".format(observation, action, reward, observation_, done))
 
-            done, reward = utils.extra_reward(done, agent, score, reward , observation_, discount_factor)
-
+            # done, reward = utils.extra_reward(done, agent, score, reward , observation_, discount_factor)
+        
             score += reward
 
             # 将每一步的当前state, action, reward, next_state, done存储到记忆库中

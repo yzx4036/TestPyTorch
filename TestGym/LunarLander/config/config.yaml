@@ -15,25 +15,26 @@
 
 
 
-training_episodes: 20000
+training_episodes: 1000
 test_episodes: 300
 render: False
 learning_rate: 0.0001
 discount_factor: 0.999 # gamma
 eps: 1
-eps_dec: 0.005
+eps_dec: 0.00001
 eps_min: 0.01
 batch_size: 100
 replace_target_network_cntr: 50
-fc1_dims: 32  
-fc2_dims1: 64
+fc1_dims: 64  
+fc2_dims1: 40
 learn_interval: 8
 mem_size: 20000
-max_frame_step: 600
+max_frame_step: 500
+seed: 1
 
 disappointing_time : 0.5 # 超时时间
-disappointing_score : -20
-disappointing_keep_going_ratio : 0.6
+disappointing_score : -2000000000000000000000000000000000000000
+disappointing_keep_going_ratio : 0.95
 disappointing_keep_going_max_count : 100
 
 test_predict_model_suffix_name:

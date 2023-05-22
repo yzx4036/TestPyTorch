@@ -132,7 +132,8 @@ class DDQNAgent:
     # 采样经验缓存中的数据
     def sample_memory(self):
         # 从经验缓存中获取一个batch size的数据
-        states, actions, rewards, new_states, dones = self.memory.sample_buffer(self.batch_size)
+        # states, actions, rewards, new_states, dones = self.memory.sample_buffer(self.batch_size)
+        states, actions, rewards, new_states, dones = self.memory.sample_buffer_sequential(self.batch_size)
 
         # 把数据转换成tensor张量返回
         states = T.tensor(states).to(self.q_policy.device)

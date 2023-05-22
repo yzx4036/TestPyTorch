@@ -43,7 +43,10 @@ def predict():
 
     logger.info("Start testing")
     agent.mark_start(True)
+    frame_step = 0
+    
     for i in range(config["test_episodes"]):
+        frame_step += 1
         done = False
         score = 0
         observation, info = env.reset()
@@ -53,7 +56,7 @@ def predict():
             action = agent.choose_action(observation, score)
             observation_, reward, done, truncated, info = env.step(action)
 
-            done, reward = utils.extra_reward(done, agent, score, reward, observation_, discount_factor)
+            # done, reward = utils.extra_reward(done, agent, score, reward, observation_, discount_factor)
             # if (done and score > -50):
             #     if reward < 0:
             #         # print("done and reward src_reward{} new_reward{} 勉强".format(reward, reward + 10))
@@ -64,6 +67,9 @@ def predict():
             #         reward = reward + 100 * (discount_factor * np.max(observation_))
             score += reward
             observation = observation_
+
+            if frame_step > config["max_frame_step"]:
+                done = True
 
         score_list.append(score)
         avg_score = np.mean(score_list[-100:])
